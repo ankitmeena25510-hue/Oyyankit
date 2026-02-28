@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ak Shop</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+:root{
+--primary:#2E7D32;
+--accent:#43A047;
+--light:#f5f7fa;
+--dark:#222;
+--white:#fff;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif}
+body{background:var(--light);color:var(--dark)}
+
+header{
+background:var(--primary);
+color:white;
+padding:20px;
+text-align:center;
+}
+header h1{font-size:24px}
+header p{font-size:14px;opacity:.9}
+
+.filters{
+display:flex;
+overflow-x:auto;
+gap:10px;
+padding:10px;
+background:white;
+}
+.filters button{
+border:none;
+padding:8px 14px;
+border-radius:20px;
+background:var(--light);
+cursor:pointer;
+font-size:13px;
+white-space:nowrap;
+}
+.filters button.active{
+background:var(--primary);
+color:white;
+}
+
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+gap:15px;
+padding:15px;
+}
+
+.card{
+background:white;
+border-radius:12px;
+padding:10px;
+box-shadow:0 4px 12px rgba(0,0,0,.05);
+display:flex;
+flex-direction:column;
+transition:.2s;
+}
+.card:hover{transform:translateY(-4px)}
+.card img{
+width:100%;
+height:160px;
+object-fit:cover;
+border-radius:10px;
+}
+.card h3{font-size:14px;margin:8px 0 4px}
+.card p{font-size:12px;opacity:.7}
+.price{font-weight:600;margin:6px 0}
+.card button{
+margin-top:auto;
+padding:8px;
+border:none;
+background:var(--accent);
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.cart-icon{
+position:fixed;
+bottom:20px;
+right:20px;
+background:var(--primary);
+color:white;
+width:55px;
+height:55px;
+border-radius:50%;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:20px;
+cursor:pointer;
+box-shadow:0 5px 15px rgba(0,0,0,.3);
+}
+.cart-count{
+position:absolute;
+top:-5px;
+right:-5px;
+background:red;
+color:white;
+width:20px;
+height:20px;
+border-radius:50%;
+font-size:12px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.modal{
+position:fixed;
+inset:0;
+background:rgba(0,0,0,.4);
+display:none;
+align-items:center;
+justify-content:center;
+z-index:1000;
+}
+.modal-content{
+background:white;
+width:95%;
+max-width:450px;
+max-height:90vh;
+overflow-y:auto;
+border-radius:12px;
+padding:15px;
+animation:fadeIn .2s ease;
+}
+@keyframes fadeIn{
+from{opacity:0;transform:scale(.95)}
+to{opacity:1;transform:scale(1)}
+}
+
+.cart-item{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+font-size:14px;
+}
+.qty{
+display:flex;
+align-items:center;
+gap:5px;
+}
+.qty button{
+padding:2px 6px;
+border:none;
+background:var(--light);
+cursor:pointer;
+}
+.total{
+font-weight:600;
+margin-top:10px;
+}
+
+form input, form textarea{
+width:100%;
+padding:8px;
+margin:6px 0;
+border-radius:6px;
+border:1px solid #ccc;
+}
+form button{
+width:100%;
+padding:10px;
+border:none;
+background:var(--primary);
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+.whatsapp{
+position:fixed;
+bottom:20px;
+left:20px;
+background:#25D366;
+color:white;
+padding:12px 16px;
+border-radius:30px;
+text-decoration:none;
+font-size:14px;
+box-shadow:0 5px 15px rgba(0,0,0,.3);
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Ak Shop</h1>
+<p>Fresh groceries delivered to your door • Kota, Rajasthan</p>
+</header>
+
+<div class="filters" id="filters"></div>
+<div class="products" id="productList"></div>
+
+<div class="cart-icon" onclick="openCart()">
+🛒
+<div class="cart-count" id="cartCount">0</div>
+</div>
+
+<a class="whatsapp" href="https://wa.me/916350155967" target="_blank">
+Chat on WhatsApp
+</a>
+
+<!-- CART -->
+<div class="modal" id="cartModal">
+<div class="modal-content">
+<h3>Your Cart</h3>
+<div id="cartItems"></div>
+<div class="total" id="grandTotal"></div>
+<button onclick="openCheckout()">Place Order</button>
+</div>
+</div>
+
+<!-- CHECKOUT -->
+<div class="modal" id="checkoutModal">
+<div class="modal-content">
+<h3>Customer Details</h3>
+
+<form id="orderForm" action="https://formspree.io/f/mreadopp" method="POST">
+<input type="hidden" name="Order Summary" id="orderSummary">
+
+<input type="text" name="Customer Name" placeholder="Your Name" required>
+<input type="tel" name="Phone Number" placeholder="Phone Number" required>
+<textarea name="Delivery Address" placeholder="Delivery Address" required></textarea>
+<textarea name="Special Instructions" placeholder="Special Instructions (optional)"></textarea>
+
+<button type="submit">Submit Order</button>
+</form>
+
+</div>
+</div>
+
+<script>
+
+const products=[
+{id:1,name:"Fresh Rice Pack",price:250,cat:"Groceries",img:"https://i.ibb.co/kVYLfppK/IMG20260228053824.jpg",desc:"Premium quality rice"},
+{id:2,name:"Cooking Oil Bottle",price:250,cat:"Groceries",img:"https://i.ibb.co/Y77mZ0px/pexels-hngstrm-1233648.jpg",desc:"Refined cooking oil"},
+{id:3,name:"Milk Pack",price:250,cat:"Dairy",img:"https://i.ibb.co/kVYLfppK/IMG20260228053824.jpg",desc:"Fresh dairy milk"},
+{id:4,name:"Butter Pack",price:250,cat:"Dairy",img:"https://i.ibb.co/Y77mZ0px/pexels-hngstrm-1233648.jpg",desc:"Creamy butter"},
+{id:5,name:"Biscuits",price:250,cat:"Snacks",img:"https://i.ibb.co/kVYLfppK/IMG20260228053824.jpg",desc:"Crunchy biscuits"},
+{id:6,name:"Chips Packet",price:250,cat:"Snacks",img:"https://i.ibb.co/Y77mZ0px/pexels-hngstrm-1233648.jpg",desc:"Spicy potato chips"},
+{id:7,name:"Soft Drink",price:250,cat:"Beverages",img:"https://i.ibb.co/kVYLfppK/IMG20260228053824.jpg",desc:"Cold refreshing drink"},
+{id:8,name:"Fruit Juice",price:250,cat:"Beverages",img:"https://i.ibb.co/Y77mZ0px/pexels-hngstrm-1233648.jpg",desc:"Healthy fruit juice"}
+];
+
+let cart=JSON.parse(localStorage.getItem("cart"))||[];
+
+const categories=["All","Groceries","Dairy","Snacks","Beverages"];
+const filters=document.getElementById("filters");
+
+categories.forEach(cat=>{
+let btn=document.createElement("button");
+btn.textContent=cat;
+btn.onclick=()=>renderProducts(cat);
+filters.appendChild(btn);
+});
+
+function renderProducts(category){
+productList.innerHTML="";
+products.filter(p=>category==="All"||p.cat===category)
+.forEach(p=>{
+productList.innerHTML+=`
+<div class="card">
+<img src="${p.img}" loading="lazy" alt="${p.name}">
+<h3>${p.name}</h3>
+<p>${p.desc}</p>
+<div class="price">₹${p.price}</div>
+<button onclick="addToCart(${p.id})">Add to Cart</button>
+</div>`;
+});
+}
+
+function addToCart(id){
+let item=cart.find(i=>i.id===id);
+if(item){item.qty++}
+else{
+let product=products.find(p=>p.id===id);
+cart.push({...product,qty:1});
+}
+updateCart();
+}
+
+function updateCart(){
+localStorage.setItem("cart",JSON.stringify(cart));
+cartCount.textContent=cart.reduce((a,b)=>a+b.qty,0);
+renderCart();
+}
+
+function renderCart(){
+cartItems.innerHTML="";
+let total=0;
+cart.forEach(item=>{
+let subtotal=item.price*item.qty;
+total+=subtotal;
+cartItems.innerHTML+=`
+<div class="cart-item">
+<div>
+${item.name}<br>
+₹${item.price} × ${item.qty} = ₹${subtotal}
+</div>
+<div class="qty">
+<button onclick="changeQty(${item.id},-1)">-</button>
+<button onclick="changeQty(${item.id},1)">+</button>
+<button onclick="removeItem(${item.id})">x</button>
+</div>
+</div>`;
+});
+grandTotal.textContent="Grand Total: ₹"+total;
+}
+
+function changeQty(id,delta){
+let item=cart.find(i=>i.id===id);
+item.qty+=delta;
+if(item.qty<=0) cart=cart.filter(i=>i.id!==id);
+updateCart();
+}
+
+function removeItem(id){
+cart=cart.filter(i=>i.id!==id);
+updateCart();
+}
+
+function openCart(){
+cartModal.style.display="flex";
+}
+
+function openCheckout(){
+if(cart.length===0){alert("Your cart is empty!");return;}
+let summary="Ak Shop Order\n\n";
+let total=0;
+cart.forEach(item=>{
+let subtotal=item.price*item.qty;
+summary+=`${item.name} - Qty: ${item.qty} - ₹${subtotal}\n`;
+total+=subtotal;
+});
+summary+=`\nGrand Total: ₹${total}`;
+orderSummary.value=summary;
+cartModal.style.display="none";
+checkoutModal.style.display="flex";
+}
+
+orderForm.addEventListener("submit",function(){
+localStorage.removeItem("cart");
+cart=[];
+alert("Order placed! Ak Shop will contact you on WhatsApp to confirm.");
+});
+
+renderProducts("All");
+updateCart();
+
+window.onclick=function(e){
+if(e.target.classList.contains("modal"))
+e.target.style.display="none";
+}
+</script>
+
+</body>
+</html>
